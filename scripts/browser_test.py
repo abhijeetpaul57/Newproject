@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SCREENSHOT_DIR = PROJECT_ROOT / "data" / "screenshots"
 SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -16,6 +16,7 @@ CHROME_PATH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 
 def wait_for_port(port: int, timeout: int = 30) -> bool:
+    """Poll local TCP port until a connection succeeds or timeout is reached."""
     import socket
     start = time.time()
     while time.time() - start < timeout:
@@ -28,6 +29,7 @@ def wait_for_port(port: int, timeout: int = 30) -> bool:
 
 
 async def run_automation():
+    """Launch API and Streamlit servers to perform headless Playwright browser tests."""
     from playwright.async_api import async_playwright
 
     print("=" * 60)
@@ -38,7 +40,7 @@ async def run_automation():
     env = os.environ.copy()
     env["PYTHONPATH"] = str(PROJECT_ROOT)
     api_proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"],
+        [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8000"],
         cwd=str(PROJECT_ROOT),
         env=env,
         stdout=subprocess.PIPE,

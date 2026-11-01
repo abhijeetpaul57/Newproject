@@ -3,18 +3,20 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Ensure project root is available on sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.config import get_settings
-from ingestion.chunker import chunk_documents
-from ingestion.loader import load_corpus
-from ingestion.vector_store import init_vector_store
+from src.core.config import get_settings
+from src.indexing.chunker import chunk_documents
+from src.indexing.loader import load_corpus
+from src.indexing.vector_store import init_vector_store
 
 settings = get_settings()
-CORPUS_DIR = Path(__file__).parent.parent / "docs" / "corpus"
+CORPUS_DIR = Path(__file__).resolve().parent.parent / "docs" / "corpus"
 
 
 def main():
+    """Ingest markdown corpus documents into persistent ChromaDB vector store."""
     print("RAG Documentation Assistant — Corpus Ingestion")
     print("=" * 50)
     print(f"Corpus directory: {CORPUS_DIR}")
@@ -63,9 +65,8 @@ def main():
 
     print()
     print("Ingestion successful. You can now start the API server:")
-    print("  uvicorn app.main:app --reload")
+    print("  uvicorn main:app --reload")
 
 
 if __name__ == "__main__":
     main()
-

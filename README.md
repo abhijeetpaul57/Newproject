@@ -7,7 +7,6 @@
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Documentation](https://img.shields.io/badge/Documentation-Comprehensive%20Guide-purple)](DOCUMENTATION.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Author](https://img.shields.io/badge/Author-Abhijeet%20Paul-blue?logo=github)](https://github.com/abhijeetpaul57)
 
 ---
 
@@ -17,7 +16,7 @@
 
 ## 1. Project Overview
 
-**DocuFlow AI** is a production-engineered, self-corrective Retrieval-Augmented Generation (RAG) assistant designed for complex technical documentation (covering LangGraph, LangChain, ChromaDB, FastAPI, and Pydantic). 
+**DocuFlow AI** is a production-engineered, self-corrective Retrieval-Augmented Generation (RAG) assistant designed for complex technical documentation (covering LangGraph, LangChain, ChromaDB, FastAPI, and Pydantic).
 
 Traditional (naive) RAG architectures suffer from semantic mismatch, context noise, and hallucination upon retrieval misses. DocuFlow AI overcomes these challenges by modeling document retrieval and response synthesis as an **explicit cyclic state machine** using **LangGraph `StateGraph`**:
 
@@ -67,17 +66,17 @@ Traditional (naive) RAG architectures suffer from semantic mismatch, context noi
      │      generate      │          yes                 no             │
      │ - grounded answer  │           │                   │             │
      │ - source citations │      (retry cycle)            ▼             │
-     └──────────┬─────────┘           └────────── ┌───────────────┐     │
-                │                                 │   fallback    │     │
-                ▼                                 │ - general AI  │     │
-              [END]                               │   knowledge   │     │
-                                                  └───────┬───────┘     │
-                                                          │             │
-                                                          ▼             │
-                                                        [END]           │
+     └──────────┬─────────┘           └────────── ┌───────────────┐    │
+                │                                 │   fallback    │    │
+                ▼                                 │ - general AI  │    │
+              [END]                               │   knowledge   │    │
+                                                  └───────┬───────┘    │
+                                                          │            │
+                                                          ▼            │
+                                                        [END]          │
 ```
 
-### State Schema (`rag/state.py`)
+### State Schema (`src/workflow/state.py`)
 
 State flowing through the workflow is strictly typed using Python's native `TypedDict`:
 
@@ -97,7 +96,7 @@ class RAGState(TypedDict):
     error: Optional[str]            # Propagated error message if any step fails
 ```
 
-### Routing Logic (`rag/routing.py`)
+### Routing Logic (`src/workflow/routing.py`)
 
 ```python
 def route_after_grading(state: RAGState) -> str:
@@ -112,21 +111,90 @@ def route_after_grading(state: RAGState) -> str:
 
 ---
 
-## 3. Technology Stack & Rationale
+## 3. Folder Structure
 
-| Layer | Technology | Rationale & Trade-offs |
-|---|---|---|
-| **Workflow Engine** | LangGraph `StateGraph` (v1.1.9) | Explicit cyclic graph with deterministic state transitions, conditional edges, and multi-turn retry capability. |
-| **LLM Provider** | Google Gemini (`gemini-3.8-flash`) | Ultra-fast inference with native support for Pydantic structured output (`.with_structured_output()`) for reliable document grading. |
+```
+Newproject/
+├── main.py                          # Root ASGI entrypoint — uvicorn main:app --reload
+├── ui.py                            # Streamlit frontend application
+├── requirements.txt                 # Python dependencies
+├── .env.example                     # Environment variable template
+├── .gitignore
+├── LICENSE
+├── README.md
+├── DOCUMENTATION.md                 # Exhaustive architectural & technical deep-dive
+│
+├── src/                             # Core application source package
+│   ├── __init__.py
+│   │
+│   ├── core/                        # Shared configuration & settings
+│   │   ├── __init__.py
+│   │   └── config.py                # Pydantic Settings — loads all env vars
+│   │
+│   ├── api/                         # FastAPI application layer
+│   │   ├── __init__.py
+│   │   ├── main.py                  # FastAPI app factory, lifespan, CORS
+│   │   ├── models/                  # Pydantic request/response schemas
+│   │   │   ├── __init__.py
+│   │   │   ├── query.py             # QueryRequest & QueryResponse models
+│   │   │   ├── ingest.py            # IngestRequest & IngestResponse models
+│   │   │   ├── feedback.py          # FeedbackRequest model
+│   │   │   └── documents.py         # DocumentListResponse model
+│   │   └── routers/                 # API route handlers
+│   │       ├── __init__.py
+│   │       ├── query.py             # POST /query endpoint
+│   │       ├── ingest.py            # POST /ingest & POST /ingest/url endpoints
+│   │       ├── feedback.py          # POST /feedback endpoint
+│   │       └── documents.py         # GET /documents endpoint
+│   │
+│   ├── indexing/                    # Document ingestion & vector store layer
+│   │   ├── __init__.py
+│   │   ├── loader.py                # Markdown/HTML/PDF loaders with SSRF protection
+│   │   ├── chunker.py               # Recursive text splitter with heading extraction
+│   │   ├── embedder.py              # sentence-transformers embedding initializer
+│   │   └── vector_store.py          # ChromaDB CRUD — add, query, delete, list
+│   │
+│   └── workflow/                    # LangGraph self-corrective RAG pipeline
+│       ├── __init__.py
+│       ├── graph.py                 # StateGraph builder — node wiring & edges
+│       ├── state.py                 # RAGState TypedDict definition
+│       ├── routing.py               # Conditional edge routing functions
+│       ├── llm.py                   # Gemini LLM initializer
+│       └── nodes/                   # Individual graph node implementations
+│           ├── __init__.py
+│           ├── query_analysis.py    # Node: classify intent & rewrite query
+│           ├── retrieval.py         # Node: ChromaDB cosine similarity search
+│           ├── grading.py           # Node: batch LLM relevance grading
+│           ├── generation.py        # Node: grounded answer synthesis
+│           └── fallback.py          # Node: general-knowledge fallback response
+│
+├── data/                            # Runtime data (feedback, screenshots)
+│   ├── feedback.jsonl               # Append-only user rating log
+│   └── screenshots/                 # UI showcase images
+│
+├── docs/                            # Documentation corpus for ingestion
+│   └── corpus/
+│       ├── langgraph_concepts.md
+│       ├── langchain_rag.md
+│       ├── chromadb_guide.md
+│       ├── fastapi_guide.md
+│       └── pydantic_v2.md
+│
+└── scripts/                         # Utility scripts
+  ├── fetch_corpus.py              # Downloads raw documentation files
+  └── ingest_corpus.py             # Batch-ingests corpus via POST /ingest
+```
+---
+
+## 4. Technology Stack & Rationale
 | **Embeddings** | `sentence-transformers/all-MiniLM-L6-v2` | Runs locally on CPU; zero API cost, zero external network dependency during retrieval, and 384-dimensional dense vectors optimal for technical prose. |
 | **Vector Store** | ChromaDB (v1.5.8) | Persistent on disk (`./chroma_db`), native metadata filtering, document listing, and granular chunk deletion. |
 | **Web API** | FastAPI (v0.115.0) + Uvicorn | High-performance ASGI framework with automatic OpenAPI documentation (`/docs`), Pydantic v2 schemas, and async streaming capabilities. |
 | **UI Presentation** | Streamlit (v1.38.0) | High-fidelity dark glassmorphism interface with custom typography (Outfit & Plus Jakarta Sans), interactive telemetry drawer, and corpus management. |
-| **Testing** | pytest + pytest-asyncio | 50 unit and integration tests covering loaders, chunking, SSRF protection, graph routing, and API endpoints. |
 
 ---
 
-## 4. Document Ingestion & Chunking Strategy
+## 5. Document Ingestion & Chunking Strategy
 
 ### The Technical Corpus
 The assistant includes an initial corpus of technical documentation located in `docs/corpus/`:
@@ -145,7 +213,7 @@ The assistant includes an initial corpus of technical documentation located in `
 
 ---
 
-## 5. UI Showcase
+## 6. UI Showcase
 
 The repository includes a modern, dark glassmorphism interface featuring custom typography, live status badges, telemetry drawers, and corpus tools:
 
@@ -159,7 +227,7 @@ The repository includes a modern, dark glassmorphism interface featuring custom 
 
 ---
 
-## 6. Setup & Installation
+## 7. Setup & Installation
 
 ### Prerequisites
 - Python 3.11, 3.12, or 3.13
@@ -205,7 +273,7 @@ AUTO_INGEST_CORPUS=true
 ### 3. Run the FastAPI Application
 
 ```bash
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 - API Docs (Swagger UI): `http://127.0.0.1:8000/docs`
@@ -229,7 +297,7 @@ The UI will automatically open at `http://localhost:8501`. Features include:
 
 ---
 
-## 7. API Reference & Examples
+## 8. API Reference & Examples
 
 ### 1. `POST /query`
 Submit a question and receive a context-grounded answer with source citations.
@@ -238,24 +306,14 @@ Submit a question and receive a context-grounded answer with source citations.
 ```bash
 curl -X POST "http://localhost:8000/query" \
   -H "Content-Type: application/json" \
-  -d '{
-    "question": "How do I add a conditional edge in LangGraph?",
-    "top_k": 5
-  }'
+  -d '{"question": "How do I add a conditional edge in LangGraph?", "top_k": 5}'
 ```
 
 **Response (200 OK):**
 ```json
 {
-  "answer": "In LangGraph, you add a conditional edge using `graph_builder.add_conditional_edges()`. You pass the source node name, a routing function that inspects the state and returns a destination string, and a dictionary mapping return values to node names or `END` [Source 1: langgraph_concepts.md — Edges].",
-  "sources": [
-    {
-      "doc_id": "doc_langgraph_concepts",
-      "source": "langgraph_concepts.md",
-      "chunk_id": "doc_langgraph_concepts_chunk_0003",
-      "heading": "Edges"
-    }
-  ],
+  "answer": "In LangGraph, you add a conditional edge using graph_builder.add_conditional_edges()...",
+  "sources": [{"doc_id": "doc_langgraph_concepts", "source": "langgraph_concepts.md", "chunk_id": "doc_langgraph_concepts_chunk_0003", "heading": "Edges"}],
   "query_type": "how-to",
   "rewritten_query": "add conditional edges routing function LangGraph StateGraph",
   "retry_count": 0,
@@ -272,17 +330,14 @@ Upload files (`.md`, `.txt`, `.html`, `.pdf`) or ingest from URLs.
 
 **File Upload:**
 ```bash
-curl -X POST "http://localhost:8000/ingest" \
-  -F "files=@my_new_doc.md"
+curl -X POST "http://localhost:8000/ingest" -F "files=@my_new_doc.md"
 ```
 
 **URL Ingestion:**
 ```bash
 curl -X POST "http://localhost:8000/ingest/url" \
   -H "Content-Type: application/json" \
-  -d '{
-    "urls": ["https://raw.githubusercontent.com/langchain-ai/langgraph/main/README.md"]
-  }'
+  -d '{"urls": ["https://raw.githubusercontent.com/langchain-ai/langgraph/main/README.md"]}'
 ```
 
 ---
@@ -302,16 +357,12 @@ Record user thumbs-up/down ratings and qualitative comments.
 ```bash
 curl -X POST "http://localhost:8000/feedback" \
   -H "Content-Type: application/json" \
-  -d '{
-    "rating": "thumbs_up",
-    "comment": "Accurate explanation and cited the correct section.",
-    "question": "How do I add a conditional edge in LangGraph?"
-  }'
+  -d '{"rating": "thumbs_up", "comment": "Accurate explanation.", "question": "How do I add a conditional edge in LangGraph?"}'
 ```
 
 ---
 
-## 8. Design Decisions & Engineering Trade-Offs
+## 9. Design Decisions & Engineering Trade-Offs
 
 ### 1. Local Embeddings vs. Cloud API Embeddings
 - **Decision**: Used `all-MiniLM-L6-v2` locally via `sentence-transformers`.
@@ -323,62 +374,17 @@ curl -X POST "http://localhost:8000/feedback" \
 - **Reasoning**: ChromaDB natively stores structured metadata per chunk and provides query filters required for the `GET /documents` endpoint and deduplication.
 - **Trade-off**: ChromaDB has slightly more process overhead than raw FAISS index matrices, but avoids the complex custom disk serialization and manual metadata indexing required with FAISS.
 
-### 3. Retry Limit of 2
+### 3. `src/` Package Layout
+- **Decision**: Organized all application code under a top-level `src/` package with sub-packages (`core`, `api`, `indexing`, `workflow`).
+- **Reasoning**: Enforces clean separation of concerns and aligns with Python packaging best practices (`pyproject.toml`-ready).
+- **Trade-off**: Requires a thin root `main.py` entrypoint, but eliminates circular-import risks common in flat project layouts.
+
+### 4. Retry Limit of 2
 - **Decision**: Fixed `max_retries = 2`.
 - **Reasoning**: A 1st retry handles terminology mismatch (e.g. acronyms vs spelled out). A 2nd retry tries a broader conceptual query. On a specialized 5-document local corpus, a 3rd attempt is statistically unlikely to discover unindexed material and would inject 3–5 seconds of unnecessary latency.
 
-### 4. Feedback Persistence
+### 5. Feedback Persistence
 - **Decision**: Append-only JSONL format (`data/feedback.jsonl`).
-- **Reasoning**: Completely durable against server crashes, zero configuration required, and atomic in nature. Feedback is collected for offline evaluation, quality monitoring, and regression testing.
+- **Reasoning**: Completely durable against server crashes, zero configuration required, and atomic in nature. Feedback is collected for offline evaluation and quality monitoring.
 
 ---
-
-## 9. Verification & Test Suite
-
-The repository includes a comprehensive 50-test suite running across three test modules:
-
-```bash
-pytest -v
-```
-
-### Test Coverage Highlights:
-- **`tests/test_ingestion.py`**:
-  - Markdown, plain text, and HTML loading
-  - Header extraction (H1/H2)
-  - SSRF protections (rejection of `localhost`, private IP ranges `10.0.0.0/8`, `192.168.0.0/16`, non-HTTP schemes)
-  - Recursive chunking boundaries, chunk ID uniqueness, and SHA-256 deduplication
-- **`tests/test_graph_nodes.py`**:
-  - Routing condition evaluations (`generate` on relevant docs, `query_analysis` on retry, `fallback` on exhausted retries or errors)
-  - Retrieval node query handling
-  - Query analysis classification & retry counter incrementation
-  - Grading node document filtering and conservative error handling
-- **`tests/test_api.py`**:
-  - `POST /query`: Valid questions, 422 input validation, fallback responses
-  - `GET /documents`: Populated & empty collection states
-  - `POST /feedback`: Thumbs up/down validation, JSONL disk logging
-  - `POST /ingest`: Multi-file upload, invalid extension rejections, SSRF validation
-  - `GET /health`: Health status monitoring
-
----
-
-## 10. Architectural Roadmap
-
-1. **Hybrid Search (BM25 + Dense Vectors)**: Implement Reciprocal Rank Fusion (RRF) combining keyword search with semantic vectors to improve precision on exact code identifiers and function names.
-2. **Self-RAG Groundedness / Hallucination Node**: Add a secondary validation pass verifying that every sentence generated in the answer maps directly to a citation quote before returning.
-3. **Dynamic Web Search Fallback**: Integrate Tavily API to dynamically pull from live developer documentation when the local corpus doesn't contain the requested topic.
-4. **Multi-Tenant Collections**: Support isolated vector spaces and permission tiers for multi-team enterprise deployment.
-
----
-
-## Author & Maintainer
-
-Developed by **Abhijeet Paul**  
-- **GitHub**: [@abhijeetpaul57](https://github.com/abhijeetpaul57)  
-- **Email**: `2023ugee057@nitjsr.ac.in`  
-- **Institution**: National Institute of Technology, Jamshedpur (NIT JSR)  
-
----
-
-## License
-
-This project is open-source and licensed under the [MIT License](LICENSE).

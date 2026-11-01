@@ -3,11 +3,12 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Ensure project root is available on sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import requests
 
-CORPUS_DIR = Path(__file__).parent.parent / "docs" / "corpus"
+CORPUS_DIR = Path(__file__).resolve().parent.parent / "docs" / "corpus"
 
 CORPUS_SOURCES = [
     {
@@ -39,6 +40,7 @@ CORPUS_SOURCES = [
 
 
 def fetch_corpus():
+    """Download technical corpus markdown files from their canonical remote repositories."""
     CORPUS_DIR.mkdir(parents=True, exist_ok=True)
     headers = {"User-Agent": "RAG-Docs-Assistant/1.0"}
 
@@ -64,4 +66,3 @@ def fetch_corpus():
 
 if __name__ == "__main__":
     fetch_corpus()
-

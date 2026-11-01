@@ -5,7 +5,7 @@ import requests
 import streamlit as st
 
 st.set_page_config(
-    page_title="RAG Documentation Assistant",
+    page_title="DocuFlow AI",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -314,6 +314,7 @@ API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 
 
 def fetch_health():
+    """Query FastAPI health endpoint to retrieve status and index statistics."""
     try:
         res = requests.get(f"{API_BASE_URL}/health", timeout=3)
         if res.status_code == 200:
@@ -331,6 +332,7 @@ def fetch_health():
 
 
 def fetch_documents():
+    """Fetch list of all currently indexed documents from the API."""
     try:
         res = requests.get(f"{API_BASE_URL}/documents", timeout=5)
         if res.status_code == 200:
@@ -341,6 +343,7 @@ def fetch_documents():
 
 
 def clear_all_documents():
+    """Send request to API to delete all indexed documents from ChromaDB."""
     try:
         res = requests.delete(f"{API_BASE_URL}/documents", timeout=10)
         return res.status_code == 200
@@ -349,6 +352,7 @@ def clear_all_documents():
 
 
 def delete_single_document(doc_id: str):
+    """Delete a specific document and its chunks by doc_id via the API."""
     try:
         res = requests.delete(f"{API_BASE_URL}/documents/{doc_id}", timeout=10)
         return res.status_code == 200
@@ -357,6 +361,7 @@ def delete_single_document(doc_id: str):
 
 
 def submit_query(question: str, top_k: int = 5):
+    """Send a question payload to the /query endpoint and return pipeline response."""
     res = requests.post(
         f"{API_BASE_URL}/query",
         json={"question": question, "top_k": top_k},
@@ -374,6 +379,7 @@ def submit_query(question: str, top_k: int = 5):
 
 
 def submit_feedback(rating: str, comment: str, question: str):
+    """Submit a thumbs up/down evaluation with optional comment to /feedback."""
     try:
         res = requests.post(
             f"{API_BASE_URL}/feedback",
@@ -386,6 +392,7 @@ def submit_feedback(rating: str, comment: str, question: str):
 
 
 def upload_files(files):
+    """Transmit uploaded files multipart-form data to the /ingest endpoint."""
     upload_list = [("files", (f.name, f.getvalue(), f.type or "application/octet-stream")) for f in files]
     res = requests.post(f"{API_BASE_URL}/ingest", files=upload_list, timeout=120)
     try:
@@ -398,6 +405,7 @@ def upload_files(files):
 
 
 def ingest_url(url: str):
+    """Send remote documentation URL payload to the /ingest/url endpoint."""
     res = requests.post(
         f"{API_BASE_URL}/ingest/url",
         json={"urls": [url]},
@@ -424,7 +432,7 @@ with st.sidebar:
         with col2:
             st.metric("Total Chunks", health.get("indexed_chunks", 0))
     else:
-        st.error(f"🔴 **FastAPI Offline**\nCannot connect to `{API_BASE_URL}`.\nRun: `uvicorn app.main:app --reload`")
+        st.error(f"🔴 **FastAPI Offline**\nCannot connect to `{API_BASE_URL}`.\nRun: `uvicorn main:app --reload`")
 
     st.markdown("---")
     page_nav = st.radio(
@@ -467,7 +475,7 @@ st.markdown(
             <span class="pulse-dot"></span>
             <span>Self-Corrective RAG Pipeline</span>
         </div>
-        <h1 class="hero-title">Technical Documentation Assistant</h1>
+        <h1 class="hero-title"> DocuFlow AI</h1>
         <p class="hero-subtitle">Interactive AI intelligence powered by LangGraph, ChromaDB, and FastAPI</p>
     </div>
     """,

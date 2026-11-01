@@ -360,7 +360,7 @@ Quantum entanglement is a physical phenomenon that occurs when a group of partic
 Sequential chains (like basic LCEL or `RetrievalQA`) are strictly acyclic: if the retrieval step returns poor context, the system is doomed to pass bad context to the generator. LangGraph models the workflow as a **cyclic state graph (`StateGraph`)**. This enables:
 - Conditional branching based on intermediate runtime state (e.g. routing greetings away from vector search).
 - Self-correction loops where failed retrievals cycle back to reformulate queries.
-- Clean separation of concerns into modular, independently testable nodes (`query_analysis`, `retrieval`, `grading`, `generate`, `fallback`).
+- Clean separation of concerns into modular nodes (`query_analysis`, `retrieval`, `grading`, `generate`, `fallback`).
 
 ---
 
@@ -634,9 +634,3 @@ streamlit run ui.py
 ```
 - Web interface will open at: `http://localhost:8501`
 
-### 4. Run the Test Suite
-
-```bash
-pytest tests/ -v
-```
-All unit tests covering loaders, chunking, SSRF filters, graph nodes, state routing, and FastAPI endpoints will execute.
